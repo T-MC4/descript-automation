@@ -1,0 +1,20 @@
+{
+	"name": "transcript-to-script",
+	"version": "1.0.0",
+	"description": "Turn transcripts into sales scripts",
+	"main": "usingChatChains.js",
+	"type": "module",
+	"scripts": {
+		"test": "node usingChatChains.js",
+		"test1": "node usingChatCalls.js",
+		"transcribe": "node dg-transcribe.js",
+		"script": "node audio-to-script.js"
+	},
+	"license": "ISC",
+	"dependencies": {
+		"@deepgram/sdk": "^2.1.1",
+		"axios": "^1.4.0",
+		"langchain": "^0.0.95",
+		"node-jq": "^2.3.5"
+	}
+}
