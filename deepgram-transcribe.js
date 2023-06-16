@@ -11,7 +11,8 @@ export async function transcribeDiarizedAudio(fileNameWithExtension) {
 
     // Set API endpoint and options
     const url =
-        'https://api.deepgram.com/v1/listen?model=phonecall&tier=nova&diarize=true&punctuate=true&smart_format=true';
+        'https://api.deepgram.com/v1/listen?model=general&tier=nova&version=latest&diarize=true';
+
     const options = {
         method: 'post',
         url: url,
