@@ -28,7 +28,7 @@ export async function transcribeDiarizedAudio(fileNameWithExtension) {
 
     // IF &smart_format=FALSE in the url, then switch the comments of the two lines below
     // const data = transformTranscript(json);
-    const data = createTranscriptArray(json);
+    const data = createTranscriptArray(json); // REPLACE THIS WITH FUNCTION THAT CREATES SEGMENTATION INFO
 
     console.log('transcript array result:', data); // Grouping Results
 
@@ -40,7 +40,7 @@ export async function transcribeDiarizedAudio(fileNameWithExtension) {
     // Save the transcript
     const fileNameWithoutExtension = path.parse(fileNameWithExtension).name;
     fs.writeFileSync(
-        `./transcripts/${fileNameWithoutExtension}.json`,
+        `./segmentation-info/${fileNameWithoutExtension}.json`,
         JSON.stringify(data, null, 2)
     );
 
@@ -67,6 +67,11 @@ function determineMimetype(file) {
             return 'application/octet-stream'; // default to binary if unknown
     }
 }
+
+// FUNCTION FOR CREATING SEGMENTATION INFO
+//
+// PLACE CODE HERE
+//
 
 // Use this when smart_format=FALSE
 function transformTranscript(data) {
