@@ -5,7 +5,44 @@ import path from 'path';
 import fs from 'fs';
 import jq from 'node-jq';
 
-import ffmpeg from '@ffmpeg-installer/ffmpeg';
+import ffmpeg from 'fluent-ffmpeg';
+//console.log(ffmpeg.path, ffmpeg.version);
+
+// Set the input file path
+const inputFile = './upload/kras.mp3';
+
+// Set the output file path
+const outputFile = './processed-audio/processedkras.mp3';
+
+
+
+/*
+async function processAudioFile(inputFile, outputFile, startTime, duration) {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputFile)
+      .setStartTime(startTime)
+      .setDuration(duration)
+      .output(outputFile)
+      .on('end', () => {
+        console.log('Audio processing completed.');
+        resolve();
+      })
+      .on('error', (err) => {
+        console.error('An error occurred:', err.message);
+        reject(err);
+      })
+      .run();
+  });
+}
+
+// Usage:
+
+const startTime = 10; // Start time in seconds
+const duration = 10; // Duration in seconds
+
+processAudioFile(inputFile, outputFile, startTime, duration)
+  .catch(error => console.error('An error occurred:', error));
+*/
 
 export async function transcribeDiarizedAudio(fileNameWithExtension) {
     const deepgramApiKey = process.env.deepgramApiKey;
@@ -29,58 +66,14 @@ try{
     // get API response
     const response = await axios(options);
     const json = response.data; // Deepgram Response
-    const audioSegments = extractSpeakerChunks(json.results.channels[0]) 
-    console.log(audioSegments)
     
-
-
-
-
-
-    function extractSpeakerChunks(transcriptJson) {
-        let currentSpeaker = transcriptJson.alternatives[0].words[0].speaker;
-        let extractedChunks = [];
-        let currentChunk = {
-          start: transcriptJson.alternatives[0].words[0].start,
-          duration: 0,
-          end: transcriptJson.alternatives[0].words[0].end
-        };
-      
-        transcriptJson.alternatives[0].words.forEach((word) => {
-          if (word.speaker === currentSpeaker) {
-            // Speaker remains the same, update the end time of the current chunk
-            currentChunk.end = word.end;
-          } else {
-            // Speaker changed, push the current chunk and start a new one
-            extractedChunks.push(currentChunk);
-            currentSpeaker = word.speaker;
-            currentChunk = {
-              speaker: currentSpeaker,
-              start: word.start,
-              duration: 0,
-              end: word.end
-            };
-          }
-        });
-      
-        // Push the last chunk
-        extractedChunks.push(currentChunk);
-      
-        return extractedChunks;
-      }
-      
-
-
-
-
-
-
 
 
     // IF &smart_format=FALSE in the url, then switch the comments of the two lines below
      const data = transformTranscript(json);
-    //const data = createTranscriptArray(json); // REPLACE THIS WITH FUNCTION THAT CREATES SEGMENTATION INFO
-
+     const audioSegments = extractSpeakerChunks(json.results.channels[0])  // REPLACE THIS WITH FUNCTION THAT CREATES SEGMENTATION INFO
+     processAudioSegments(filePath, audioSegments, outputFile)
+     .catch(error => console.error('An error occurred:', error));
     //console.log('transcript array result:', data); // Grouping Results
 
     // IF &utterances=true is added to the url, then remove the comments below
@@ -102,6 +95,87 @@ try{
 
     }
 }
+
+
+
+
+
+
+
+function extractSpeakerChunks(transcriptJson) {
+    let currentSpeaker = transcriptJson.alternatives[0].words[0].speaker;
+    let extractedChunks = [];
+    let currentChunk = {
+      start: transcriptJson.alternatives[0].words[0].start,
+      duration: 0,
+      end: transcriptJson.alternatives[0].words[0].end
+    };
+  
+    transcriptJson.alternatives[0].words.forEach((word) => {
+      if (word.speaker === currentSpeaker) {
+        // Speaker remains the same, update the end time of the current chunk
+        currentChunk.end = word.end;
+      } else {
+        // Speaker changed, push the current chunk and start a new one
+        extractedChunks.push(currentChunk);
+        currentSpeaker = word.speaker;
+        currentChunk = {
+          speaker: currentSpeaker,
+          start: word.start,
+          duration: 0,
+          end: word.end
+        };
+      }
+    });
+  
+    // Push the last chunk
+    extractedChunks.push(currentChunk);
+  
+    return extractedChunks;
+  }
+  
+  async function processAudioSegments(inputFile, timestamps, outputFile) {
+    const segments = [];
+  
+    // Cut audio segments
+    for (let i = 0; i < timestamps.length; i++) {
+      const segment = timestamps[i];
+      const { start, speaker , end} = segment;
+      const segmentOutputFile = `segment_${i}.mp3`;
+      if(speaker===1){
+      await new Promise((resolve, reject) => {
+        ffmpeg(inputFile)
+          .setStartTime(start)
+          .setDuration(end-start)
+          .output(segmentOutputFile)
+          .on('end', () => {
+            segments.push(segmentOutputFile);
+            resolve();
+          })
+          .on('error', (err) => {
+            reject(err);
+          })
+          .run();
+      });}
+    }
+
+    // Concatenate audio segments
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .input('concat:' + segments.join('|'))
+        .output(outputFile)
+        .on('end', () => {
+          // Clean up temporary segment files
+          segments.forEach((segment) => fs.unlinkSync(segment));
+          resolve();
+        })
+        .on('error', (err) => {
+          reject(err);
+        })
+        .run();
+    });
+}
+  
 
 // const transcript = await transcribeDiarizedAudio(
 // 	"REc4323a037cd0e2cde4f6bee845f598fb.mp3"
