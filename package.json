@@ -13,9 +13,14 @@
     "license": "ISC",
     "dependencies": {
         "@deepgram/sdk": "^2.1.1",
+        "@ffmpeg-installer/ffmpeg": "^1.1.0",
         "axios": "^1.4.0",
         "dotenv": "^16.3.0",
+        "esm": "^3.2.25",
+        "ffmpeg.js": "^4.2.9003",
+        "fs": "^0.0.1-security",
         "langchain": "^0.0.95",
-        "node-jq": "^2.3.5"
+        "node-jq": "^2.3.5",
+        "path": "^0.12.7"
     }
 }
