@@ -1,18 +1,21 @@
-const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
+import dotenv from 'dotenv';
 
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import jq from 'node-jq';
 
+import ffmpeg from '@ffmpeg-installer/ffmpeg';
+
 export async function transcribeDiarizedAudio(fileNameWithExtension) {
+    const deepgramApiKey = process.env.deepgramApiKey;
+
     // Set file path
     const filePath = path.join('./upload', fileNameWithExtension);
 
     // Set API endpoint and options
     const url =
-        'https://api.deepgram.com/v1/listen?model=general&tier=nova&version=latest&diarize=true';
-
+        'https://api.deepgram.com/v1/listen?model=general&tier=nova&diarize=true'
     const options = {
         method: 'post',
         url: url,
@@ -22,16 +25,63 @@ export async function transcribeDiarizedAudio(fileNameWithExtension) {
         },
         data: fs.createReadStream(filePath),
     };
-
+try{
     // get API response
     const response = await axios(options);
     const json = response.data; // Deepgram Response
+    const audioSegments = extractSpeakerChunks(json.results.channels[0]) 
+    console.log(audioSegments)
+    
+
+
+
+
+
+    function extractSpeakerChunks(transcriptJson) {
+        let currentSpeaker = transcriptJson.alternatives[0].words[0].speaker;
+        let extractedChunks = [];
+        let currentChunk = {
+          start: transcriptJson.alternatives[0].words[0].start,
+          duration: 0,
+          end: transcriptJson.alternatives[0].words[0].end
+        };
+      
+        transcriptJson.alternatives[0].words.forEach((word) => {
+          if (word.speaker === currentSpeaker) {
+            // Speaker remains the same, update the end time of the current chunk
+            currentChunk.end = word.end;
+          } else {
+            // Speaker changed, push the current chunk and start a new one
+            extractedChunks.push(currentChunk);
+            currentSpeaker = word.speaker;
+            currentChunk = {
+              speaker: currentSpeaker,
+              start: word.start,
+              duration: 0,
+              end: word.end
+            };
+          }
+        });
+      
+        // Push the last chunk
+        extractedChunks.push(currentChunk);
+      
+        return extractedChunks;
+      }
+      
+
+
+
+
+
+
+
 
     // IF &smart_format=FALSE in the url, then switch the comments of the two lines below
-    // const data = transformTranscript(json);
-    const data = createTranscriptArray(json); // REPLACE THIS WITH FUNCTION THAT CREATES SEGMENTATION INFO
+     const data = transformTranscript(json);
+    //const data = createTranscriptArray(json); // REPLACE THIS WITH FUNCTION THAT CREATES SEGMENTATION INFO
 
-    console.log('transcript array result:', data); // Grouping Results
+    //console.log('transcript array result:', data); // Grouping Results
 
     // IF &utterances=true is added to the url, then remove the comments below
     // const filter =
@@ -46,7 +96,11 @@ export async function transcribeDiarizedAudio(fileNameWithExtension) {
     );
 
     // Return the transcript
-    return data;
+    return data;}
+    catch(error){
+        console.error('An error occurred:', error);
+
+    }
 }
 
 // const transcript = await transcribeDiarizedAudio(
